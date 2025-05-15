@@ -1,0 +1,23 @@
+{
+  "name": "usdt_usd_arbitrage_telegram_bot",
+  "version": "1.0.0",
+  "description": "A Telegram bot for monitoring and notifying UBOT & MaiCoin & MAX USDT/USD arbitrage opportunities.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --env-file=.env index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=20.12.0"
+  },
+  "author": "Patrick Wang (patw.hi@gmail.com)",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "node-cron": "^4.0.5",
+    "node-telegram-bot-api": "^0.66.0",
+    "ws": "^8.18.2"
+  }
+}
