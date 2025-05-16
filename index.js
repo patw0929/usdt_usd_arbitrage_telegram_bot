@@ -171,7 +171,7 @@ async function sendTelegramNotification(arbitrageData) {
 聯邦銀行買入 USD -> VA 至 MaiCoin -> MaiCoin 用 USD 買入 USDT -> 內轉至 MAX 交易 -> MAX 賣出 USDT -> 獲利 TWD -> 銀行出金
 
 💰 *預期利潤*:
-- 以投入 ${config.initialAmount.toFixed(2)} TWD 計算
+- 以投入 ${config.initialAmount} TWD 計算
 - ${config.profitTWD.toFixed(2)} TWD
 
 💱 *當前匯率*:
