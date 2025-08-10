@@ -29,7 +29,7 @@ const CONFIG = {
   // 輪詢設定
   polling: {
     // 檢查頻率 (cron 表達式)
-    schedule: '*/3 * * * *' // 每 3 分鐘檢查一次
+    schedule: '*/1 * * * *' // 每 1 分鐘檢查一次
   },
   // 記錄檔
   storage: {
