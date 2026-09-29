@@ -18,9 +18,13 @@ server {
     listen 443 ssl http2;
     server_name your-domain.com;
 
-    # SSL 憑證 (使用 Let's Encrypt 或 Cloudflare Origin CA)
+    # SSL 憑證：
+    # 1. 若使用 Let's Encrypt 或 Cloudflare Origin CA：
     ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+    # 2. 若啟用 Cloudflare 代理 (橘雲) 且 SSL 設為 Full，亦可直接使用自簽憑證：
+    # ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+    # ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 

@@ -103,7 +103,7 @@ yarn test
 | `SERVER_HOST` | VPS 伺服器 IP 或主機名稱 | `your-server-ip-or-domain.com` |
 | `SERVER_USER` | SSH 連線使用者名稱 | `ubuntu` / `root` |
 | `SERVER_SSH_KEY` | SSH 私鑰 (Private Key) | `-----BEGIN OPENSSH PRIVATE KEY...` |
-| `SERVER_PORT` | SSH 連線 Port (選填) | `22` |
+| `SERVER_PORT` | SSH 連線 Port (選填，若非預設 22 請務必填寫) | `22` |
 | `SERVER_APP_DIR` | 專案在 VPS 上的存放路徑 (選填) | `~/apps/usdt_usd_arbitrage_telegram_bot/` |
 
 ### 2. VPS 初次設定準備
@@ -139,6 +139,7 @@ server {
     listen 443 ssl http2;
     server_name your-domain.com;
 
+    # SSL 憑證 (若使用 Cloudflare 橘雲且 SSL 設為 Full，亦可使用主機自簽憑證)
     ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
 
@@ -158,6 +159,8 @@ server {
     }
 }
 ```
+
+> **💡 多站點共存提示**：若同一台 VPS 同時運行多個專案服務，請確保各子網域皆有配置獨立的 `server_name` 與 `proxy_pass`，避免 HTTPS 請求因未匹配專屬網域而預設 fallback 至第一個站點。
 
 ---
 
