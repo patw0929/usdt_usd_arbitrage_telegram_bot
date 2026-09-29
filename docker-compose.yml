@@ -1,0 +1,24 @@
+services:
+  arbitrage-bot:
+    build: .
+    container_name: usdt_usd_arbitrage_telegram_bot
+    restart: unless-stopped
+    ports:
+      # 綁定 127.0.0.1 可確保公網流量無法繞過 Cloudflare Zero Trust / Nginx 直連
+      # 若需對外直接開放，可改為 "3888:3888"
+      - "127.0.0.1:3888:3888"
+    env_file:
+      - .env
+    volumes:
+      # 持久化歷史紀錄與調參設定檔 (自動掛載 ./data 目錄)
+      - ./data:/app/data
+    environment:
+      - TZ=Asia/Taipei
+      - NODE_ENV=production
+      - DATA_DIR=/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3888/api/status', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -1,0 +1,57 @@
+# Nginx 反向代理設定範本 (適用於搭配 Cloudflare Zero Trust)
+# 建議路徑：/etc/nginx/sites-available/arbitrage.example.com
+#
+# ⚠️ 資安防護重要提醒：
+# 轉發 Cf-Access-Authenticated-User-Email 標頭時，為防範攻擊者直接繞過 Cloudflare 偽造該標頭：
+# 【最佳實踐】強烈推薦使用 Cloudflare Tunnel (cloudflared) 直接轉發流量至 127.0.0.1:3888，伺服器完全無需對外開放 80/443 埠。
+# 【若使用 Nginx】請務必在防火牆或 Nginx 設定僅允許 Cloudflare 節點 IP 存取本站，避免公網直連。
+
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    # 自動轉向 HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+
+    # SSL 憑證 (使用 Let's Encrypt 或 Cloudflare Origin CA)
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # 存取日誌
+    access_log /var/log/nginx/arbitrage_access.log;
+    error_log /var/log/nginx/arbitrage_error.log;
+
+    # 反向代理至 Node.js Dashboard (Port 3888)
+    location / {
+        proxy_pass http://127.0.0.1:3888;
+        proxy_http_version 1.1;
+
+        # WebSocket 與即時連線標頭
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+
+        # 客戶端真實 IP 與主機標頭
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # 轉發 Cloudflare Zero Trust (Access) 身分驗證標頭
+        # (注意：請確保伺服器已透過防火牆或 Tunnel 限制僅允許 Cloudflare IP 存取)
+        proxy_set_header Cf-Access-Authenticated-User-Email $http_cf_access_authenticated_user_email;
+        proxy_set_header Cf-Access-Jwt-Assertion $http_cf_access_jwt_assertion;
+
+        # 緩衝與超時設定
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

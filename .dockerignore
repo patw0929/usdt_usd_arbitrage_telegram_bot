@@ -1,0 +1,8 @@
+node_modules
+.git
+.env
+data
+*.log
+user_config.json
+arbitrage_data.json
+*.tmp.*
