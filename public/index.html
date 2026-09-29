@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USDT<>USD 套利監控儀表板 | Arbitrage Dashboard</title>
+  <meta name="description" content="即時監控聯邦銀行 USD/TWD、MaiCoin USDT/USD 與 MAX Exchange USDT/TWD 套利空間與通知控制台">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Background Glow Effects -->
+  <div class="glow-bg glow-1"></div>
+  <div class="glow-bg glow-2"></div>
+
+  <div class="app-container">
+    <!-- Navbar / Header -->
+    <header class="navbar">
+      <div class="nav-left">
+        <div class="brand-logo">
+          <div class="brand-coin-wrap">
+            <img src="images/mario_coin.png" alt="Super Mario Gold Coin" class="logo-coin">
+          </div>
+          <div class="logo-text">
+            <div class="logo-title-row">
+              <h1>USD<span class="logo-t">T</span><span class="logo-usd">USD</span></h1>
+            </div>
+            <span class="badge-sub">搬磚套利監控系統</span>
+          </div>
+        </div>
+        <div id="monitorStatusBadge" class="status-badge status-loading">
+          <span class="dot"></span>
+          <span class="text">連線中...</span>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <div class="nav-right-meta">
+          <div id="authStatusBadge" class="auth-badge hidden">
+            <span class="auth-icon">🛡️</span>
+            <span id="authUserText" class="auth-text">Cloudflare Zero Trust</span>
+          </div>
+          <div class="last-updated">
+            <span class="label">上次檢查：</span>
+            <span id="lastCheckTime" class="value">--:--:--</span>
+          </div>
+        </div>
+        <button id="btnManualCheck" class="btn btn-primary" title="立即抓取匯率計算">
+          <span class="icon">🔄</span>
+          <span class="btn-text">立即手動檢查</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Retro NES Lode Runner Arcade Marquee Banner -->
+    <div class="retro-hero-card">
+      <div class="retro-screen-frame">
+        <div class="scanlines"></div>
+        <img src="images/lode_runner_hero.jpg" alt="NES Lode Runner Crypto Arbitrage" class="retro-banner-img">
+        <div class="retro-screen-overlay">
+          <div class="retro-hud-center">
+            <h2 class="retro-title-text">CRYPTO ARBITRAGE 搬磚套利</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Opportunity Banner (Hidden by default, shown when profit >= threshold) -->
+    <div id="opportunityBanner" class="opportunity-banner hidden">
+      <div class="banner-content">
+        <span class="banner-badge">🚀 發現套利機會</span>
+        <span id="opportunityText" class="banner-text">目前預估純利已達門檻！</span>
+      </div>
+      <div class="banner-action">
+        <span class="pulse-ring"></span>
+      </div>
+    </div>
+
+    <!-- Error Alert Banner (Hidden by default, shown when lastError exists) -->
+    <div id="errorAlertBanner" class="error-banner hidden">
+      <div class="banner-content">
+        <span class="banner-badge banner-badge-danger">⚠️ 連線異常</span>
+        <span id="errorAlertText" class="banner-text">無法取得即時匯率資料</span>
+      </div>
+      <div class="banner-action">
+        <span id="errorAlertTime" class="error-time-tag">剛剛</span>
+      </div>
+    </div>
+
+    <!-- Metric Cards Grid -->
+    <section class="metrics-grid">
+      <!-- Card 1: 預估純利 -->
+      <div class="card metric-card profit-card" id="profitCard">
+        <div class="card-header">
+          <span class="card-title">預估純利潤</span>
+          <span id="profitRateTag" class="tag tag-neutral">0.00%</span>
+        </div>
+        <div class="card-value-wrap">
+          <span class="currency">TWD</span>
+          <span id="metricProfit" class="metric-value">--</span>
+        </div>
+        <div class="card-footer">
+          <span>本金：<strong id="metricBaseAmount">--</strong></span>
+          <span>門檻：<strong id="metricMinProfit">--</strong></span>
+        </div>
+      </div>
+
+      <!-- Card 2: 聯邦銀行 USD/TWD -->
+      <div class="card metric-card">
+        <div class="card-header">
+          <span class="card-title">聯邦銀行 USD/TWD</span>
+          <span class="tag tag-blue">即期賣出</span>
+        </div>
+        <div class="card-value-wrap">
+          <span class="currency">$</span>
+          <span id="metricUbotRate" class="metric-value">--</span>
+        </div>
+        <div class="card-footer">
+          <span>App讓分：<strong id="metricDiscount">0.035</strong></span>
+          <span>實質匯率：<strong id="metricNetUsdRate">--</strong></span>
+        </div>
+      </div>
+
+      <!-- Card 3: MaiCoin USDT/USD -->
+      <div class="card metric-card">
+        <div class="card-header">
+          <span class="card-title">MaiCoin USDT/USD</span>
+          <span class="tag tag-purple">即期買入 (Ask)</span>
+        </div>
+        <div class="card-value-wrap">
+          <span class="currency">$</span>
+          <span id="metricMaiCoinRate" class="metric-value">--</span>
+        </div>
+        <div class="card-footer">
+          <span>換得：<strong id="metricUsdtAmount">--</strong></span>
+          <span>通道：WebSocket</span>
+        </div>
+      </div>
+
+      <!-- Card 4: MAX USDT/TWD -->
+      <div class="card metric-card">
+        <div class="card-header">
+          <span class="card-title">MAX Exchange USDT/TWD</span>
+          <span class="tag tag-cyan">買盤 (賣出價)</span>
+        </div>
+        <div class="card-value-wrap">
+          <span class="currency">NT$</span>
+          <span id="metricMaxRate" class="metric-value">--</span>
+        </div>
+        <div class="card-footer">
+          <span>手續費：<strong id="metricFeeRate">--</strong></span>
+          <span>賣出：<strong id="metricFinalAmount">--</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content Layout (Settings & Chart) -->
+    <div class="content-layout">
+      <!-- Left Column: Settings & Controls -->
+      <aside class="settings-column">
+        <div class="card settings-card">
+          <div class="section-header">
+            <h3>⚙️ 監控與套利參數設定</h3>
+            <span class="subtext">變更即時生效，自動保存於 VPS</span>
+          </div>
+
+          <!-- Toggles -->
+          <div class="toggle-group">
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <span class="toggle-label">定時自動輪詢監控</span>
+                <span class="toggle-desc">開啟或暫停背景定時抓取匯率</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggleMonitoring">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <span class="toggle-label">Telegram 警報通知</span>
+                <span class="toggle-desc">達到門檻時發送即時推播訊息</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggleNotifications">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Config Form -->
+          <form id="configForm" class="config-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="inputBaseAmount">預計投入本金 (TWD)</label>
+                <div class="input-prefix-wrap">
+                  <span class="prefix">NT$</span>
+                  <input type="number" id="inputBaseAmount" name="baseAmount" step="10000" min="10000" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="inputMinProfit">通知門檻 (TWD)</label>
+                <div class="input-prefix-wrap">
+                  <span class="prefix">NT$</span>
+                  <input type="number" id="inputMinProfit" name="minProfitTWD" step="100" min="0" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="inputMaxFee">MAX 交易手續費率 (%)</label>
+                <div class="input-prefix-wrap">
+                  <span class="prefix">%</span>
+                  <input type="number" id="inputMaxFee" name="maxTradeFeeRate" step="0.005" min="0" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="inputUbotDiscount">聯邦銀行讓分 (USD)</label>
+                <div class="input-prefix-wrap">
+                  <span class="prefix">$</span>
+                  <input type="number" id="inputUbotDiscount" name="ubotDiscount" step="0.005" min="0" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="inputWithdrawFee">MAX 出金手續費 (TWD)</label>
+                <div class="input-prefix-wrap">
+                  <span class="prefix">NT$</span>
+                  <input type="number" id="inputWithdrawFee" name="withdrawFee" step="1" min="0" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="inputInterval">輪詢間隔 (分鐘)</label>
+                <div class="input-prefix-wrap">
+                  <span class="prefix">⏱️</span>
+                  <input type="number" id="inputInterval" name="intervalMinutes" step="1" min="1" max="60" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="btnSaveConfig" class="btn btn-accent">
+                <span>儲存並套用設定</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Quick Strategy Guide Card -->
+        <div class="card info-card">
+          <h4>💡 套利搬磚路徑</h4>
+          <ol class="step-list">
+            <li><strong>聯邦銀行</strong>：以 TWD 買入 USD（享有讓分優惠）。</li>
+            <li><strong>MaiCoin</strong>：入金 USD，以即期盤價買入 USDT。</li>
+            <li><strong>MAX 交易所</strong>：內轉 USDT 零手續費，以 TWD 賣出。</li>
+            <li><strong>出金回聯邦</strong>：提領 TWD 回銀行完成一個閉環。</li>
+          </ol>
+        </div>
+      </aside>
+
+      <!-- Right Column: Chart & Recent Logs -->
+      <main class="chart-column">
+        <!-- Interactive Chart Card -->
+        <div class="card chart-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">📈 利潤走勢與歷史紀錄</h3>
+              <span class="subtext">近 100 次檢查之試算純利 (TWD) 走勢</span>
+            </div>
+            <div class="chart-actions">
+              <span id="chartPointsCount" class="tag tag-neutral">0 筆資料</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="arbitrageChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Recent History Table -->
+        <div class="card history-card">
+          <div class="card-header">
+            <h3 class="card-title">📋 最近檢查明細</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>時間</th>
+                  <th>聯邦 USD 賣出</th>
+                  <th>MaiCoin 買入</th>
+                  <th>MAX 賣出</th>
+                  <th>預估純利 (TWD)</th>
+                  <th>投報率</th>
+                  <th>狀態</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <tr>
+                  <td colspan="7" class="text-center text-muted">正在載入紀錄...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Password Modal (Triggered on 401) -->
+    <div id="passwordModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <h3>🔒 請輸入儀表板密碼</h3>
+        <p class="modal-desc">此伺服器已啟用存取保護，請輸入存取金鑰以繼續操作：</p>
+        <div class="form-group">
+          <input type="password" id="modalPasswordInput" placeholder="輸入儀表板密碼..." autocomplete="current-password">
+        </div>
+        <div class="modal-actions">
+          <button id="btnSubmitPassword" class="btn btn-primary">解鎖存取</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
