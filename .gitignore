@@ -1,3 +1,5 @@
 node_modules
 .env
 arbitrage_data.json
+user_config.json
+data/
